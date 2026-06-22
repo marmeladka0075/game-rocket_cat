@@ -119,18 +119,56 @@ class GameModel:
         self.reset_game()
 
     def load_progress(self):
-        if os.path.exists("save.json"):
+        # Каталог скинов и цены
+        self.skins_catalog = {
+            "default": 0,
+            "red_rocket": 15,
+            "gold_rocket": 50,
+            "neon_rocket": 100
+        }
+        self.unlocked_skins = ["default"]
+        self.current_skin = "default"
+
+        if os.path.exists("progress.json"):
             try:
-                with open("save.json", "r") as f:
+                with open("progress.json", "r") as f:
                     data = json.load(f)
                     self.high_score = data.get("high_score", 0)
                     self.total_bones = data.get("total_bones", 0)
+                    self.volume = data.get("volume", 0.5)
+                    self.unlocked_skins = data.get("unlocked_skins", ["default"])
+                    self.current_skin = data.get("current_skin", "default")
             except:
                 pass
 
     def save_progress(self):
-        with open("save.json", "w") as f:
-            json.dump({"high_score": self.high_score, "total_bones": self.total_bones}, f)
+        data = {
+            "high_score": getattr(self, 'high_score', 0),
+            "total_bones": getattr(self, 'total_bones', 0),
+            "volume": getattr(self, 'volume', 0.5),
+            "unlocked_skins": getattr(self, 'unlocked_skins', ["default"]),
+            "current_skin": getattr(self, 'current_skin', "default")
+        }
+        try:
+            with open("progress.json", "w") as f:
+                json.dump(data, f)
+        except:
+            pass
+
+    def buy_or_equip_skin(self, skin_name):
+        if skin_name in self.unlocked_skins:
+            self.current_skin = skin_name
+            self.save_progress()
+            return True
+
+        price = self.skins_catalog[skin_name]
+        if self.total_bones >= price:
+            self.total_bones -= price
+            self.unlocked_skins.append(skin_name)
+            self.current_skin = skin_name
+            self.save_progress()
+            return True
+        return False
 
     def get_next_markov_gap(self):
         probs = self.markov_matrix[self.current_markov_state]
