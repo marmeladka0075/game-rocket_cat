@@ -99,6 +99,7 @@ class GameModel:
     def __init__(self):
         self.is_running = True
         self.game_state = "MENU"
+        self.volume = 0.5
         self.base_speed = 200.0
         self.sounds_to_play = []
 
