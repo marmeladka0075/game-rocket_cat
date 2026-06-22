@@ -9,6 +9,7 @@ class GameView:
         self.height = 600
 
         pygame.init()
+        pygame.mixer.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Rocket Cat: 8-bit Space Odyssey")
 
@@ -25,7 +26,9 @@ class GameView:
         self.bg_x = 0
 
         self.sprites = {}
+        self.sounds = {}
         self.load_sprites()
+        self.load_audio()
 
     def load_sprites(self):
         def load_image(name, size=None):
@@ -39,7 +42,7 @@ class GameView:
                 except:
                     print(f"Ошибка загрузки {name}. Проверь формат файла!")
             return None
-          
+
         self.sprites['bg'] = load_image("bg.png", (self.width, self.height))
         self.sprites['player'] = load_image("player.png", (55, 45))
         self.sprites['bone'] = load_image("fish.png", (25, 25))
@@ -48,6 +51,34 @@ class GameView:
         self.sprites['FUEL'] = load_image("fuel.png", (32, 32))
         self.sprites['asteroid'] = load_image("asteroid.png")
         self.sprites['meteorite'] = load_image("meteorite.png", (80, 40))
+
+    def load_audio(self):
+        def load_sound(name):
+            path = os.path.join("assets", name)
+            if os.path.exists(path):
+                return pygame.mixer.Sound(path)
+            return None
+
+        self.sounds['jump'] = load_sound("jump.wav")
+        self.sounds['fish'] = load_sound("fish.wav")
+        self.sounds['buff'] = load_sound("buff.wav")
+        self.sounds['crash'] = load_sound("crash.wav")
+
+        music_path = os.path.join("assets", "music.mp3")
+        if os.path.exists(music_path):
+            pygame.mixer.music.load(music_path)
+            pygame.mixer.music.set_volume(0.3)  # Музыка чуть тише, чтобы не оглушать
+
+    def play_sound(self, sound_name):
+        if self.sounds.get(sound_name):
+            self.sounds[sound_name].play()
+
+    def play_music(self):
+        if not pygame.mixer.music.get_busy():
+            pygame.mixer.music.play(-1)  # -1 означает зациклить музыку
+
+    def stop_music(self):
+        pygame.mixer.music.stop()
 
     def draw_text(self, text, font, color, x, y, center=False):
         surface = font.render(text, True, color)
