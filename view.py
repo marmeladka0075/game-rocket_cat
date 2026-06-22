@@ -52,6 +52,11 @@ class GameView:
         self.sprites['asteroid'] = load_image("asteroid.png")
         self.sprites['meteorite'] = load_image("meteorite.png", (80, 40))
 
+        self.sprites['player_default'] = load_image("player.png")
+        self.sprites['player_red_rocket'] = load_image("player_red_rocket.png")
+        self.sprites['player_gold_rocket'] = load_image("player_gold_rocket.png")
+        self.sprites['player_neon_rocket'] = load_image("player_neon_rocket.png")
+
     def load_audio(self):
         def load_sound(name):
             path = os.path.join("assets", name)
@@ -67,7 +72,7 @@ class GameView:
         music_path = os.path.join("assets", "music.mp3")
         if os.path.exists(music_path):
             pygame.mixer.music.load(music_path)
-            pygame.mixer.music.set_volume(0.3)  # Музыка чуть тише, чтобы не оглушать
+            pygame.mixer.music.set_volume(0.3)
 
     def play_sound(self, sound_name):
         if self.sounds.get(sound_name):
@@ -78,7 +83,7 @@ class GameView:
 
     def play_music(self):
         if not pygame.mixer.music.get_busy():
-            pygame.mixer.music.play(-1)  # -1 означает зациклить музыку
+            pygame.mixer.music.play(-1)
 
     def stop_music(self):
         pygame.mixer.music.stop()
@@ -110,15 +115,16 @@ class GameView:
 
         self.draw_bg(delta_time if self.model.game_state == "PLAYING" else 0, current_speed)
 
-        # --- ВОТ ТУТ МЫ ПРОВЕРЯЕМ, КАКОЙ ЭКРАН СЕЙЧАС РИСОВАТЬ ---
         if self.model.game_state == "MENU":
             self.render_menu()
 
         elif self.model.game_state == "SETTINGS":
             self.render_settings()
 
+        elif self.model.game_state == "SHOP":
+            self.render_shop()
+
         elif self.model.game_state in ("PLAYING", "GAME_OVER"):
-            # ВЕСЬ ТВОЙ СТАРЫЙ КОД ОТРИСОВКИ ИГРЫ (АСТЕРОИДЫ, КОТ, РЫБЫ)
             ast_img = self.sprites.get('asteroid')
             for obs in self.model.obstacles:
                 if ast_img:
@@ -164,7 +170,15 @@ class GameView:
                                      (buff.x, buff.y, buff.width, buff.height))
 
             p = self.model.player
-            player_img = self.sprites.get('player')
+            current_skin = getattr(self.model, 'current_skin', 'default')
+
+            player_img = self.sprites.get(f'player_{current_skin}')
+            if not player_img and current_skin == 'default':
+                player_img = self.sprites.get('player')
+
+            skin_colors = {"default": (255, 140, 0), "red_rocket": (255, 0, 0), "gold_rocket": (255, 215, 0),
+                           "neon_rocket": (0, 255, 0)}
+            current_color = skin_colors.get(current_skin, self.color_player)
 
             if p.state == "SHIELD":
                 pygame.draw.rect(self.screen, self.buff_colors["SHIELD"],
@@ -179,9 +193,10 @@ class GameView:
                 pygame.draw.rect(self.screen, (255, 0, 0), (p.x, p.y, p.width, p.height))
             else:
                 if player_img:
-                    self.screen.blit(player_img, (p.x, p.y))
+                    scaled_player = pygame.transform.scale(player_img, (int(p.width), int(p.height)))
+                    self.screen.blit(scaled_player, (p.x, p.y))
                 else:
-                    pygame.draw.rect(self.screen, self.color_player, (p.x, p.y, p.width, p.height))
+                    pygame.draw.rect(self.screen, current_color, (p.x, p.y, p.width, p.height))
 
             self.draw_text(f"Score: {int(self.model.score)}", self.font_small, (255, 255, 255), 10, 10)
             self.draw_text(f"Fish: {self.model.current_run_bones}", self.font_small, self.color_bone, 10, 40)
@@ -193,38 +208,60 @@ class GameView:
 
         pygame.display.flip()
 
-    # --- НОВЫЕ ФУНКЦИИ ДЛЯ ОТРИСОВКИ МЕНЮ И НАСТРОЕК ---
     def render_menu(self):
         self.draw_text("ROCKET CAT", self.font_large, (255, 215, 0), 400, 150, center=True)
         self.draw_text(f"Total Fish: {self.model.total_bones}", self.font_small, self.color_bone, 400, 200, center=True)
 
-        # Кнопка PLAY
-        pygame.draw.rect(self.screen, (50, 50, 100), (300, 250, 200, 50))
-        self.draw_text("PLAY", self.font_small, (255, 255, 255), 400, 275, center=True)
+        pygame.draw.rect(self.screen, (50, 50, 100), (300, 240, 200, 50))
+        self.draw_text("PLAY", self.font_small, (255, 255, 255), 400, 265, center=True)
 
-        # Кнопка SETTINGS
-        pygame.draw.rect(self.screen, (50, 50, 100), (300, 330, 200, 50))
-        self.draw_text("SETTINGS", self.font_small, (255, 255, 255), 400, 355, center=True)
+        pygame.draw.rect(self.screen, (50, 50, 100), (300, 310, 200, 50))
+        self.draw_text("SHOP", self.font_small, (255, 255, 255), 400, 335, center=True)
+
+        pygame.draw.rect(self.screen, (50, 50, 100), (300, 380, 200, 50))
+        self.draw_text("SETTINGS", self.font_small, (255, 255, 255), 400, 405, center=True)
 
     def render_settings(self):
-        # Заголовок
         self.draw_text("SETTINGS", self.font_large, (255, 255, 255), 400, 80, center=True)
 
-        # Текст громкости
         vol_pct = int(self.model.volume * 100)
         self.draw_text(f"VOLUME: {vol_pct}%", self.font_small, (255, 255, 255), 400, 220, center=True)
 
-        # Ползунок (серая подложка и зеленая заливка)
         pygame.draw.rect(self.screen, (100, 100, 100), (250, 260, 300, 20))
         pygame.draw.rect(self.screen, (0, 255, 0), (250, 260, int(300 * self.model.volume), 20))
 
-        # Кнопки плюс и минус
         pygame.draw.rect(self.screen, (50, 50, 100), (190, 245, 40, 40))
         self.draw_text("-", self.font_small, (255, 255, 255), 210, 265, center=True)
 
         pygame.draw.rect(self.screen, (50, 50, 100), (570, 245, 40, 40))
         self.draw_text("+", self.font_small, (255, 255, 255), 590, 265, center=True)
 
-        # Кнопка BACK (Назад)
         pygame.draw.rect(self.screen, (150, 50, 50), (300, 450, 200, 50))
         self.draw_text("BACK", self.font_small, (255, 255, 255), 400, 475, center=True)
+
+    def render_shop(self):
+        self.draw_text("SPACE SHOP", self.font_large, (255, 215, 0), 400, 80, center=True)
+        self.draw_text(f"Your Fish: {self.model.total_bones}", self.font_small, (255, 255, 255), 400, 130, center=True)
+
+        y_offset = 180
+        skin_colors = {"default": (255, 140, 0), "red_rocket": (255, 0, 0), "gold_rocket": (255, 215, 0),
+                       "neon_rocket": (0, 255, 0)}
+
+        for skin, price in self.model.skins_catalog.items():
+            pygame.draw.rect(self.screen, (30, 30, 60), (150, y_offset, 500, 50))
+            pygame.draw.rect(self.screen, skin_colors[skin], (170, y_offset + 10, 30, 30))
+            self.draw_text(skin.upper(), self.font_small, (255, 255, 255), 220, y_offset + 25, center=False)
+
+            if self.model.current_skin == skin:
+                btn_text, btn_color = "EQUIPPED", (100, 100, 100)
+            elif skin in self.model.unlocked_skins:
+                btn_text, btn_color = "EQUIP", (50, 100, 50)
+            else:
+                btn_text, btn_color = f"BUY: {price}", (100, 50, 150)
+
+            pygame.draw.rect(self.screen, btn_color, (500, y_offset + 10, 130, 30))
+            self.draw_text(btn_text, self.font_small, (255, 255, 255), 565, y_offset + 25, center=True)
+            y_offset += 60
+
+        pygame.draw.rect(self.screen, (150, 50, 50), (300, 500, 200, 50))
+        self.draw_text("BACK", self.font_small, (255, 255, 255), 400, 525, center=True)
