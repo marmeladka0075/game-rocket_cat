@@ -73,6 +73,9 @@ class GameView:
         if self.sounds.get(sound_name):
             self.sounds[sound_name].play()
 
+    def update_volume(self):
+        pygame.mixer.music.set_volume(self.model.volume * 0.3)
+
     def play_music(self):
         if not pygame.mixer.music.get_busy():
             pygame.mixer.music.play(-1)  # -1 означает зациклить музыку
@@ -107,15 +110,15 @@ class GameView:
 
         self.draw_bg(delta_time if self.model.game_state == "PLAYING" else 0, current_speed)
 
+        # --- ВОТ ТУТ МЫ ПРОВЕРЯЕМ, КАКОЙ ЭКРАН СЕЙЧАС РИСОВАТЬ ---
         if self.model.game_state == "MENU":
-            self.draw_text("ROCKET CAT", self.font_large, (255, 255, 255), 400, 200, center=True)
-            self.draw_text(f"High Score: {self.model.high_score}", self.font_small, (255, 0, 0), 400, 260,
-                           center=True)
-            self.draw_text(f"Total Fish: {self.model.total_bones}", self.font_small, self.color_bone, 400, 300,
-                           center=True)
-            self.draw_text("Press SPACE to Start", self.font_small, (0, 255, 0), 400, 400, center=True)
+            self.render_menu()
+
+        elif self.model.game_state == "SETTINGS":
+            self.render_settings()
 
         elif self.model.game_state in ("PLAYING", "GAME_OVER"):
+            # ВЕСЬ ТВОЙ СТАРЫЙ КОД ОТРИСОВКИ ИГРЫ (АСТЕРОИДЫ, КОТ, РЫБЫ)
             ast_img = self.sprites.get('asteroid')
             for obs in self.model.obstacles:
                 if ast_img:
@@ -189,3 +192,39 @@ class GameView:
                 self.draw_text("Press ESC for Menu", self.font_small, (255, 255, 255), 400, 360, center=True)
 
         pygame.display.flip()
+
+    # --- НОВЫЕ ФУНКЦИИ ДЛЯ ОТРИСОВКИ МЕНЮ И НАСТРОЕК ---
+    def render_menu(self):
+        self.draw_text("ROCKET CAT", self.font_large, (255, 215, 0), 400, 150, center=True)
+        self.draw_text(f"Total Fish: {self.model.total_bones}", self.font_small, self.color_bone, 400, 200, center=True)
+
+        # Кнопка PLAY
+        pygame.draw.rect(self.screen, (50, 50, 100), (300, 250, 200, 50))
+        self.draw_text("PLAY", self.font_small, (255, 255, 255), 400, 275, center=True)
+
+        # Кнопка SETTINGS
+        pygame.draw.rect(self.screen, (50, 50, 100), (300, 330, 200, 50))
+        self.draw_text("SETTINGS", self.font_small, (255, 255, 255), 400, 355, center=True)
+
+    def render_settings(self):
+        # Заголовок
+        self.draw_text("SETTINGS", self.font_large, (255, 255, 255), 400, 80, center=True)
+
+        # Текст громкости
+        vol_pct = int(self.model.volume * 100)
+        self.draw_text(f"VOLUME: {vol_pct}%", self.font_small, (255, 255, 255), 400, 220, center=True)
+
+        # Ползунок (серая подложка и зеленая заливка)
+        pygame.draw.rect(self.screen, (100, 100, 100), (250, 260, 300, 20))
+        pygame.draw.rect(self.screen, (0, 255, 0), (250, 260, int(300 * self.model.volume), 20))
+
+        # Кнопки плюс и минус
+        pygame.draw.rect(self.screen, (50, 50, 100), (190, 245, 40, 40))
+        self.draw_text("-", self.font_small, (255, 255, 255), 210, 265, center=True)
+
+        pygame.draw.rect(self.screen, (50, 50, 100), (570, 245, 40, 40))
+        self.draw_text("+", self.font_small, (255, 255, 255), 590, 265, center=True)
+
+        # Кнопка BACK (Назад)
+        pygame.draw.rect(self.screen, (150, 50, 50), (300, 450, 200, 50))
+        self.draw_text("BACK", self.font_small, (255, 255, 255), 400, 475, center=True)
