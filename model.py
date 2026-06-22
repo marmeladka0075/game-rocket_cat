@@ -100,6 +100,7 @@ class GameModel:
         self.is_running = True
         self.game_state = "MENU"
         self.base_speed = 200.0
+        self.sounds_to_play = []
 
         self.score = 0.0
         self.high_score = 0
@@ -219,6 +220,7 @@ class GameModel:
             self.player.y, self.player.velocity = 0, 0
 
     def trigger_game_over(self):
+        self.sounds_to_play.append('crash')
         self.player.state = "DEAD"
         self.game_state = "GAME_OVER"
         self.total_bones += self.current_run_bones
@@ -233,6 +235,7 @@ class GameModel:
             if b.active and (px < b.x + b.width and px + pw > b.x and py < b.y + b.height and py + ph > b.y):
                 b.active = False
                 self.current_run_bones += 1
+                self.sounds_to_play.append('fish')
 
         if self.buff.active:
             bx, by, bw, bh = self.buff.x, self.buff.y, self.buff.width, self.buff.height
@@ -240,6 +243,7 @@ class GameModel:
                 self.player.state = self.buff.type
                 self.player.buff_timer = 5.0
                 self.buff.active = False
+                self.sounds_to_play.append('buff')
 
         for m in self.meteorites:
             if m.active:
